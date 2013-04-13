@@ -1,9 +1,13 @@
+#TODO: playing bar
 #TODO: last.fm integration
 #TODO: fix unicode filenames
 #TODO: play queue system
 #TODO: dirctrl
+#TODO: make musicplayer a class
 #TODO: change icons
-
+#TODO: redraw on sizing
+#TODO: Help
+import os, glob
 try:
 	import wx
 	import pygame
@@ -24,23 +28,47 @@ except ImportError as error:
 
 mixer.init()
 
+class MusicPlayer(object):
+	def __init__(self):
+		self.isPaused = False
+
 class frameClass(wx.Frame):
 	"""This is the class for the Main wx frame."""
 	def __init__(self, parent, id):
 		self.name = 'Music all up in yo\' grill'
-		wx.Frame.__init__(self, parent, id, self.name, size = (800, 600)) #calling base constructor, size and stuff
+		wx.Frame.__init__	(self, parent, id, self.name, size = (800, 600)) #calling base constructor, size and stuff
 		self.setupUI()
 		self.isPaused = False
 
 	def setupUI(self):
 		"""Calls other setup methods, sets the icon and all other initial UI stuff"""
-		self.panel = wx.Panel(self)
 		self.Center()
 		status = self.CreateStatusBar()
 		self.menuBarInit()
+		# self.panel = wx.Panel(self, wx.ID_ANY)
 		self.ToolBarInit()
+		self.directoryListInit()
 		icon = wx.Icon('playIcon.ico', wx.BITMAP_TYPE_ICO)
 		self.SetIcon(icon)
+
+	def directoryListInit(self):
+
+		splitter = wx.SplitterWindow(self, -1)
+
+		leftCol = wx.Window(splitter, -1, style=wx.BORDER_SUNKEN)
+		rightCol =  wx.Window(splitter, -1, style=wx.BORDER_SUNKEN)
+		rightCol.SetBackgroundColour(wx.WHITE)
+		splitter.SplitVertically(leftCol, rightCol, 	150)
+		self.dirControl = wx.GenericDirCtrl(leftCol, -1, size=(700, 450), dir='D:\\music', style=0)
+		tree = self.dirControl.GetTreeCtrl()
+		self.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.onDirCtrlSelect, id=tree.GetId())
+
+	def onDirCtrlSelect(self, event):
+		selected = self.dirControl.GetPath()
+		if os.path.isdir(selected):
+			self.setPlayQueue(selected)
+		elif os.path.isfile(selected):
+			self.openFile(selected)
 
 	def menuBarInit(self):
 		"""Sets up the menubar and its menu items, binding them to their onClick methods"""
@@ -68,6 +96,7 @@ class frameClass(wx.Frame):
 		pauseTool = self.tool.AddLabelTool(wx.ID_ANY, 'Pause', wx.Bitmap('pause.bmp', wx.BITMAP_TYPE_ANY))
 		stopTool = self.tool.AddLabelTool(wx.ID_ANY, 'Stop', wx.Bitmap('stop.bmp', wx.BITMAP_TYPE_ANY))
 
+		# self.tool.SetToolBitmapSize((8,8))
 		self.tool.AddSeparator()
 
 		self.volume = wx.Slider(self.tool, -1, 50, 0, 100, style= wx.SL_AUTOTICKS | wx.SL_LABELS)
@@ -109,6 +138,20 @@ class frameClass(wx.Frame):
 				mixer.music.play()
 			except pygame.error as error:
 				self.showError(error)
+	def openFile(self, filename):
+		print filename
+		try:
+			mixer.music.load(filename.encode('utf-8'))
+			mixer.music.play()
+		except pygame.error as error:
+			self.showError(error)
+
+	def setPlayQueue(self, directory):
+		os.chdir(directory)
+		self.playQueue = []
+		print directory
+		self.playQueue = glob.glob('*.mp3')
+		print self.playQueue
 
 	def showAboutDialog(self, event):
 		description = """A music playing application written in python 2.7.3 using the wxPython tool kit."""
@@ -138,6 +181,7 @@ class frameClass(wx.Frame):
 			else:
 				mixer.music.unpause()
 				self.isPaused = False
+
 		except pygame.error as error:
 			self.showError(error)
 
@@ -149,6 +193,11 @@ class frameClass(wx.Frame):
 	def stop(self, event):
 		print ('stop')
 		mixer.music.stop()
+
+	def onKey(self, event):
+		if event.GetKeyCode() == wx.WXK_SPACE:
+			self.pause()
+			print "Pause"
 
 	def showError(self, error):
 		wx.MessageBox(str(error), 'Uh Oh', wx.OK | wx.ICON_ERROR)
