@@ -2,7 +2,9 @@
 #TODO: last.fm integration
 #TODO: fix unicode filenames
 #TODO: play queue system
+#TODO: artwork!
 #TODO: dirctrl
+#TODO: settings panel
 #TODO: make musicplayer a class
 #TODO: change icons
 #TODO: redraw on sizing
@@ -37,8 +39,16 @@ class frameClass(wx.Frame):
 	def __init__(self, parent, id):
 		self.name = 'Music all up in yo\' grill'
 		wx.Frame.__init__	(self, parent, id, self.name, size = (800, 600)) #calling base constructor, size and stuff
+		self.player = MusicPlayer()
 		self.setupUI()
 		self.isPaused = False
+		self.timer = wx.Timer(self)
+		self.timer.Start(1000)
+		self.Bind(wx.EVT_TIMER, self.update, self.timer)
+
+	def update(self, event):
+		# print mixer.music.get_pos() / 1000
+		self.position.SetValue(mixer.music.get_pos() / 1000)
 
 	def setupUI(self):
 		"""Calls other setup methods, sets the icon and all other initial UI stuff"""
@@ -99,22 +109,32 @@ class frameClass(wx.Frame):
 		# self.tool.SetToolBitmapSize((8,8))
 		self.tool.AddSeparator()
 
-		self.volume = wx.Slider(self.tool, -1, 50, 0, 100, style= wx.SL_AUTOTICKS | wx.SL_LABELS)
+		self.volume = wx.Slider(self.tool, -1, 50, 0, 100, style=wx.SL_AUTOTICKS | wx.SL_LABELS)
 		self.volume.SetTickFreq(5, 1)
 
-		self.tool.AddControl(self.volume)
+		self.position = wx.Slider(self.tool, -1, 0, 0, 100, size=(490, -1), style=wx.SL_AUTOTICKS | wx.SL_LABELS)
+		self.position.SetTickFreq(5, 1)
 
+		self.tool.AddControl(self.volume)
 		self.tool.AddSeparator()
+		self.tool.AddControl(self.position)
 
 		self.tool.Realize() #needed for windows
 
 		self.Bind(wx.EVT_TOOL, self.play, playTool)
 		self.Bind(wx.EVT_TOOL, self.pause, pauseTool)
 		self.Bind(wx.EVT_TOOL, self.stop, stopTool)
+		self.Bind(wx.EVT_SLIDER, self.onVolSlide, self.volume)
+		self.Bind(wx.EVT_TOOL, self.setPosition, self.position)
 
-		self.Bind(wx.EVT_SLIDER, self.onSlide, self.volume)
+	def setPosition(self, event):
+		pos = int(event.GetEventObject().GetValue())
+		print pos
+		mixer.music.stop()
+		mixer.music.set_pos(pos)
+		mixer.music.play()
 
-	def onSlide(self, event):
+	def onVolSlide(self, event):
 		print (mixer.music.get_volume())
 		vol = float(event.GetEventObject().GetValue()) / 100.0 #needs to be between 0.0 and 1.0
 		mixer.music.set_volume(vol)
