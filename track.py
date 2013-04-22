@@ -4,7 +4,7 @@ import glob
 
 class Track(object):
     def __init__(self, trackname):
-        self.coverNames = ['folder.jpg', 'Folder.jpg', 'cover.jpg', 'Cover.jpg'] #common artwork filenames
+        self.coverNames = ['folder.jpg', 'Folder.jpg', 'cover.jpg', 'Cover.jpg', 'front.jpg'] #common artwork filenames
         self.setCurrent(trackname)
 
     def setCurrent(self, trackname):
@@ -15,12 +15,11 @@ class Track(object):
         except IOError as error:
             raise(error)
         else:
-            self.artwork = None
+            self.artwork = os.path.abspath(os.path.dirname(__file__)) + '\img\unknownArt.jpg' #default if none is found
             self.artist = audioFile.tag.artist
             self.album = audioFile.tag.album
             self.title = audioFile.tag.title
             self.length = audioFile.info.time_secs
-            print self.length
             self.trackNumber =  audioFile.tag.track_num #tuple, (trackNum, noTracks)
             for filen in glob.glob('*.jpg'):
                 if filen in self.coverNames:
