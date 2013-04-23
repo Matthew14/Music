@@ -4,9 +4,6 @@ import json
 
 class Settings(wx.Dialog):
     def __init__(self, parent, ID, title, size=(400, 400), pos=(100, 100), style=wx.DEFAULT_DIALOG_STYLE, useMetal=False):
-        self.currentFolder = 'D:\\Music'
-        self.username = ''
-        self.password = ''
         filename = os.path.dirname(__file__) + 'settings.json'
         self.getInfo(filename)
 
@@ -65,7 +62,7 @@ class Settings(wx.Dialog):
         buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
         okButton = wx.Button(self, wx.ID_OK)
         cancelButton = wx.Button(self, wx.ID_CANCEL)
-        cancelButton.SetDefault()
+        okButton.SetDefault()
         buttonSizer.Add(okButton)
         buttonSizer.Add(cancelButton, flag=wx.LEFT, border=5)
 
@@ -77,7 +74,7 @@ class Settings(wx.Dialog):
         panel.SetSizer(settingsSizer)
         self.SetSizer(vertSizer)
 
-        if self.userText.GetValue() == '':
+        if self.userText.GetValue() == '' or not self.scrobblingEnabled:
             self.lastCheckBox.Set3StateValue(0)
             self.userText.Disable()
             self.passText.Disable()
@@ -87,23 +84,31 @@ class Settings(wx.Dialog):
             self.passText.Enable()
 
     def getInfo(self, filename):
-        pass
+        with open( os.path.abspath(os.path.dirname(__file__)) + '\\settings.json', 'r') as f:
+            settingsDict = json.load(f)
+        self.scrobblingEnabled = settingsDict[0]['scrobblingEnabled']
+        self.username= settingsDict[0]['username']
+        self.password = settingsDict[0]['password']
+        self.currentFolder = settingsDict[0]['workingDirectory']
 
     def onLastCheck(self, event):
         result = self.lastCheckBox.Get3StateValue()
         if result == 0:
             self.userText.Disable()
             self.passText.Disable()
+            self.scrobblingEnabled = False
         elif result == 1:
             self.userText.Enable()
             self.passText.Enable()
+            self.scrobblingEnabled = True
 
     def onDirButton(self, event):
         directoryDialog = wx.DirDialog(self, "Choose a directory:",
             style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST | wx.DD_CHANGE_DIR)
 
         if directoryDialog.ShowModal() == wx.ID_OK:
-            print('You selected: %s\n' % directoryDialog.GetPath())
+           self.currentFolder = directoryDialog.GetPath()
+           print self.currentFolder
         directoryDialog.Destroy()
 
 if __name__ == '__main__':

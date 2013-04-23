@@ -4,6 +4,7 @@ import os
 import glob
 import Queue
 from track import Track
+from lastfm import LastFM
 import wx
 class MusicPlayer(object):
     def __init__(self):
@@ -21,17 +22,31 @@ class MusicPlayer(object):
     def paused(self, value):
         self._paused = value
 
-    def setNext(self):
+    @property
+    def scrobblingEnabled(self):
+        """Boolean, for determining if scrobbling is Enabled"""
+        return self._scrobblingEnabled
+    @scrobblingEnabled.setter
+    def scrobblingEnabled(self, value):
+        self._scrobblingEnabled = value
+
+    def update(self):
+        """Checks if the playing track is over and if so, changes it. returns changed if the track has changed"""
+        if self.currentTrack != None and self.getPos() / 1000 >= self.currentTrack.length:
+         self.setNext()
+         return 'changed'
+
+    def setNext(self, event=None):
         if not self.playQueue.empty():
             if self.currentTrack != None:
-                self.previous.append(self.currentTrack)
+                self.previous.append(self.currentTrack.path)
 
             trackname = self.playQueue.get()
             self.currentTrack = Track(trackname)
             mixer.music.load(trackname)
             self.play()
 
-    def setPrevious(self):
+    def setPrevious(self, event=None):
         if len(self.previous) > 0:
             trackname = self.previous.pop()
             self.currentTrack = Track(trackname)
@@ -40,11 +55,14 @@ class MusicPlayer(object):
 
     def play(self):
         try:
-         if not self.paused:
-            mixer.music.play()
-         else:
-            mixer.music.unpause()
-            self._paused = False
+            if self.currentTrack != None:
+             if not self.paused:
+                mixer.music.play()
+             else:
+                mixer.music.unpause()
+                self._paused = False
+            else:
+                raise Exception("No track loaded")
 
         except pygame.error as error:
              raise error
@@ -58,7 +76,7 @@ class MusicPlayer(object):
         mixer.music.stop()
 
     def seek(self, position):
-        # self.stop()
+        self.stop()
         pygame.mixer.music.play(0, position)
 
     def setVolume(self, vol):
