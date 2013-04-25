@@ -3,6 +3,7 @@ import wx
 import json
 
 class Settings(wx.Dialog):
+    """provides a settings dialog and saves user input to a json file"""
     def __init__(self, parent, ID, title, size=(400, 400), pos=(100, 100), style=wx.DEFAULT_DIALOG_STYLE, useMetal=False):
         filename = os.path.dirname(__file__) + 'settings.json'
         self.getInfo(filename)

@@ -1,8 +1,8 @@
 [
     {
-        "username": "matthewoneill14", 
-        "password": "mat141191", 
-        "workingDirectory": "D:\\Music", 
-        "scrobblingEnabled": true
+        "username": "", 
+        "password": "", 
+        "workingDirectory": "D:\\music", 
+        "scrobblingEnabled": false
     }
 ]

@@ -1,6 +1,5 @@
 #TODO: last.fm integration
 #TODO: redraw on sizing
-#TODO: add previous and next buttons
 import os, glob
 import sys
 import json
@@ -9,7 +8,6 @@ try:
    from settings import Settings
    from about import MattsAboutBoxInfo
    import wx
-
 except ImportError as error:
    if sys.version_info[0] != 2:
       print("Unfortunately as wxpython doesn't yet support python 3, you need Python version \n"
@@ -22,7 +20,8 @@ class musicFrame(wx.Frame):
    """This is the class for the Main wx frame."""
    def __init__(self, parent, id):
       self.name = 'Matt\'s Music'
-      wx.Frame.__init__   (self, parent, id, self.name, size = (800, 600)) #calling base constructor, size and stuff
+      self.size = (900, 600)
+      wx.Frame.__init__   (self, parent, id, self.name, size = self.size, style=wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER)
       self.player = MusicPlayer()
       self.setupUI()
 
@@ -34,35 +33,46 @@ class musicFrame(wx.Frame):
    def update(self, event):
       self.position.SetValue(self.player.getPos() / 1000)
       if self.player.update() == 'changed':
-         self.play(0)
+         self.play()
          self.setPlayingInfo()
 
    def setupUI(self):
       """Calls other setup methods, sets the icon and all other initial UI stuff"""
       self.Center()
       status = self.CreateStatusBar()
+      #left window for directory listing, right for playback info
       self.splitter = wx.SplitterWindow(self, -1)
       self.leftCol = wx.SashLayoutWindow(self.splitter, -1, style=wx.BORDER_SUNKEN)
-      self.rightCol =  wx.SashLayoutWindow(self.splitter, -1, style=wx.BORDER_SUNKEN)
-      self.rightCol.SetBackgroundColour(wx.WHITE)
+      self.rightCol =  wx.SashLayoutWindow(self.splitter, -1, style=wx.BORDER_SUNKEN | wx.FULL_REPAINT_ON_RESIZE)
+      self.rightCol.SetBackgroundColour('#C1C6F5')
+
       self.splitter.SplitVertically(self.leftCol, self.rightCol, 250)
       self.menuBarInit()
       self.ToolBarInit()
       self.directoryListInit()
-      icon = wx.Icon('img\playIcon.ico', wx.BITMAP_TYPE_ICO)
+      icon = wx.Icon( os.path.abspath(os.path.dirname(__file__)) + '\img\playIcon.ico', wx.BITMAP_TYPE_ICO)
       self.SetIcon(icon)
 
    def setPlayingInfo(self):
       self.rightCol.Update()
       self.rightCol.ClearBackground()
-
+      rightColSize =  self.rightCol.GetSize()
       if self.player.currentTrack != None:
          ####Set position bar to have correct length:
          self.position.SetMax(self.player.currentTrack.length)
 
+         ####Album Art:
+         artPos = ((self.GetSize()[0] / 2) - (250), 10)
+         artFile = self.player.currentTrack.artwork
+         if artFile != None:
+            art = wx.Image(str(artFile), wx.BITMAP_TYPE_JPEG)
+            art = art.Scale(250, 250, wx.IMAGE_QUALITY_HIGH)
+            art = art.ConvertToBitmap()
+            art = wx.StaticBitmap(self.rightCol, -1, art, artPos, (art.GetWidth(),art.GetHeight()))
+
          ####Track info:
+         trackInfoPos = (self.GetSize()[0] /2, self.GetSize()[1] - 300)
          trackNO = str(self.player.currentTrack.trackNumber[0])
-         track = trackNO + ' of ' +str(self.player.currentTrack.trackNumber[1])
          title = self.player.currentTrack.title
          artist = self.player.currentTrack.artist
          album = self.player.currentTrack.album
@@ -70,23 +80,13 @@ class musicFrame(wx.Frame):
          #casting all of these to str as they may be None:
          self.SetTitle(trackNO + ': ' + title + ' - ' +str(artist))
 
-         if self.player.currentTrack.trackNumber[1] == None:
-            wx.StaticText(self.rightCol, -1, 'Track: ' + str(trackNO), (20, 10))
-         else:
-            wx.StaticText(self.rightCol, -1, 'Track: ' + str(track), (20, 10))
-
-         wx.StaticText(self.rightCol, -1, 'Title: ' + str(title), (20, 30))
-         wx.StaticText(self.rightCol, -1, 'Artist: ' + str(artist), (20, 50))
-         wx.StaticText(self.rightCol, -1, 'Album: ' + str(album), (20, 70))
-
-         ####Album Art:
-         artFile = self.player.currentTrack.artwork
-         if artFile != None:
-            art = wx.Image(str(artFile), wx.BITMAP_TYPE_JPEG)
-            art = art.Scale(250, 250, wx.IMAGE_QUALITY_HIGH)
-            art = art.ConvertToBitmap()
-            # art.Scale(250)
-            wx.StaticBitmap(self.rightCol, -1, art, (10, 100), (art.GetWidth(),art.GetHeight()))
+         playingInfo = """\
+Track: {}
+Title: {}
+Artist: {}
+Album: {}
+""".format(str(trackNO), str(title), str(artist), str(album))
+         wx.StaticText(self.rightCol, -1, playingInfo, trackInfoPos).CenterOnParent(wx.HORIZONTAL)
 
    def directoryListInit(self, directory='D:\\music'):
       self.dirControl = wx.GenericDirCtrl(self.leftCol, -1, size=(700, 450), dir=directory, style=0)
@@ -132,11 +132,11 @@ class musicFrame(wx.Frame):
       previousTool = self.tool.AddLabelTool(wx.ID_ANY, 'Previous', wx.Bitmap('img\\previous.bmp', wx.BITMAP_TYPE_ANY))
       nextTool = self.tool.AddLabelTool(wx.ID_ANY, 'Next', wx.Bitmap('img\\next.bmp', wx.BITMAP_TYPE_ANY))
       self.tool.AddSeparator()
-
       self.volume = wx.Slider(self.tool, -1, 50, 0, 100, style=wx.SL_AUTOTICKS | wx.SL_LABELS)
       self.volume.SetTickFreq(5, 1)
 
-      self.position = wx.Slider(self.tool, -1, 0, 0, 100, size=(490, -1), style=wx.SL_AUTOTICKS | wx.SL_LABELS)
+      posSizeX = self.size[0] - 425
+      self.position = wx.Slider(self.tool, -1, 0, 0, 100, size=(posSizeX, -1), style=wx.SL_AUTOTICKS | wx.SL_LABELS)
       self.position.SetTickFreq(5, 1)
 
       self.tool.AddControl(self.volume)
@@ -155,8 +155,10 @@ class musicFrame(wx.Frame):
       self.Bind(wx.EVT_SLIDER, self.setPosition, self.position)
 
    def setPosition(self, event):
+      self.timer.Stop()
       pos = int(event.GetEventObject().GetValue())
       self.player.seek(pos)
+      self.timer.Start(1000)
 
    def onVolSlide(self, event):
       self.player.setVolume(float(event.GetEventObject().GetValue()) / 100.0) #needs to be between 0.0 and 1.0

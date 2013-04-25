@@ -1,11 +1,22 @@
 import eyed3
 import os
 import glob
+import time
 
 class Track(object):
     def __init__(self, trackname):
         self.coverNames = ['folder.jpg', 'Folder.jpg', 'cover.jpg', 'Cover.jpg', 'front.jpg'] #common artwork filenames
         self.setCurrent(trackname)
+        self._scrobbled = False
+        self.time = int(time.time())
+
+    @property
+    def scrobbled(self):
+        """Boolean, for determining if the music is scrobbled"""
+        return self._scrobbled
+    @scrobbled.setter
+    def scrobbled(self, value):
+        self._scrobbled = value
 
     def setCurrent(self, trackname):
         self.path = trackname
